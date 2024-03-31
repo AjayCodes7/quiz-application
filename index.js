@@ -23,6 +23,10 @@ const port = 3000;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+app.get("/paper",(req,res) =>{
+  res.redirect("/");
+});
+
 app.get("/", (req, res) => {
   res.render("home.ejs");
 });
@@ -53,16 +57,24 @@ app.post("/create", async (req, res) => {
 });
 
 app.get("/participate", (req, res) => {
-  res.render("participate.ejs");
+  res.render("participate.ejs",{invalidity:""});
 });
 
 app.post("/paper", async (req, res) => {
   const id = req.body.quizid;
   // console.log(id);
-  let qp = await db.query("SELECT * FROM quiz WHERE id = ($1) ORDER BY qno",[id]);
-  // console.log(qp.rows); 
-  // console.log(qp.rowCount); 
-  return res.render("paper.ejs",{ques: qp.rows,no_ques:qp.rowCount});
+  let valid = []
+  let validity = await db.query("SELECT DISTINCT id FROM quiz;");
+  for (let x = 0;x<validity.rowCount;x++){
+    valid.push(validity.rows[x].id);
+  }
+  if (valid.includes(Number(id))){
+    let qp = await db.query("SELECT * FROM quiz WHERE id = ($1) ORDER BY qno",[id]);
+    // console.log(qp.rows); 
+    // console.log(qp.rowCount); 
+    return res.render("paper.ejs",{ques: qp.rows,no_ques:qp.rowCount});
+  }
+  res.render("participate.ejs",{invalidity:"    # Invalid Quiz ID"});
 });
 
 app.post("/evaluation", async (req, res) => {
